@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Alfarero Diaguita 3D - Zoom Modelo</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+        body {
+            background-color: #000000;
+            color: #ffffff;
+            font-family: system-ui, -apple-system, sans-serif;
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        #canvas-3d {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+        /* Barra superior con selector de cámara */
+        .top-bar {
+            position: relative;
+            z-index: 10;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            pointer-events: none;
+        }
+        .header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .badge {
+            background: rgba(30, 20, 15, 0.9);
+            border: 1px solid #92400e;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            color: #fde68a;
+        }
+        .badge span {
+            color: #f59e0b;
+        }
+        /* Botones para cambiar entre tu jarra y el modelo 3D de cerca */
+        .view-switcher {
+            display: flex;
+            gap: 8px;
+            pointer-events: auto;
+            width: 100%;
+        }
+        .tab-btn {
+            flex: 1;
+            padding: 11px 8px;
+            border-radius: 10px;
+            border: 2px solid #57534e;
+            background: rgba(24, 24, 27, 0.92);
+            color: #d6d3d1;
+            font-weight: bold;
+            font-size: 0.88rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+        .tab-btn.active-player {
+            background: #78350f;
+            border-color: #f59e0b;
+            color: #ffffff;
+            box-shadow: 0 0 15px rgba(245, 158, 11, 0.4);
+        }
+        .tab-btn.active-model {
+            background: #065f46;
+            border-color: #34d399;
+            color: #ffffff;
+            box-shadow: 0 0 15px rgba(52, 211, 153, 0.4);
+        }
+        .helper-hint {
+            text-align: center;
+            font-size: 0.78rem;
+            color: #a8a29e;
+            text-shadow: 0 1px 3px #000;
+        }
+        /* Panel inferior */
+        .bottom-bar {
+            position: relative;
+            z-index: 10;
+            margin-top: auto;
+            background: linear-gradient(to top, #000000 82%, rgba(0,0,0,0));
+            padding: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .consigna {
+            text-align: center;
+            font-size: 0.92rem;
+            color: #fde68a;
+            font-weight: bold;
+        }
+        #feedback {
+            text-align: center;
+            font-size: 0.88rem;
+            min-height: 20px;
+            font-weight: bold;
+        }
+        .options-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+        .design-btn {
+            background: #231914;
+            border: 2px solid #92400e;
+            color: #fff;
+            padding: 10px 6px;
+            border-radius: 8px;
+            font-size: 0.82rem;
+            cursor: pointer;
+            text-align: center;
+        }
+        .design-btn:active {
+            transform: scale(0.96);
+        }
+        .design-btn.used {
+            background: #14532d;
+            border-color: #22c55e;
+            color: #bbf7d0;
+            pointer-events: none;
+        }
+        .design-btn.wrong {
+            background: #7f1d1d;
+            border-color: #ef4444;
+        }
+        #next-btn {
+            display: none;
+            background: #f59e0b;
+            color: #000;
+            font-weight: bold;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            cursor: pointer;
+        }
+
+        /* Pantalla Final de Victoria */
+        #victory-modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 50;
+            background: rgba(0, 0, 0, 0.88);
+            backdrop-filter: blur(6px);
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            animation: fadeIn 0.4s ease;
+        }
+        .victory-card {
+            background: linear-gradient(145deg, #291810, #170d08);
+            border: 3px solid #f59e0b;
+            border-radius: 18px;
+            padding: 28px 22px;
+            max-width: 400px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 0 35px rgba(245, 158, 11, 0.45);
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+        .diaguita-border {
+            height: 10px;
+            width: 100%;
+            background: repeating-linear-gradient(
+                90deg,
+                #f59e0b 0px,
+                #f59e0b 14px,
+                #111111 14px,
+                #111111 28px,
+                #fffbeb 28px,
+                #fffbeb 42px
+            );
+            border-radius: 4px;
+        }
+        .victory-icon {
+            font-size: 3.4rem;
+            margin-top: 4px;
+        }
+        .victory-title {
+            font-size: 1.45rem;
+            font-weight: 800;
+            color: #fbbf24;
+            letter-spacing: 0.5px;
+        }
+        .victory-message {
+            font-size: 1.05rem;
+            line-height: 1.5;
+            color: #fef3c7;
+            font-weight: 500;
+        }
+        .restart-btn {
+            margin-top: 8px;
+            background: #f59e0b;
+            color: #111111;
+            font-weight: 800;
+            border: none;
+            padding: 14px;
+            border-radius: 10px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: transform 0.15s, background 0.2s;
+        }
+        .restart-btn:active {
+            transform: scale(0.96);
+            background: #d97706;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+
+    <div id="canvas-3d"></div>
+
+    <!-- Controles superiores -->
+    <div class="top-bar">
+        <div class="header-row">
+            <div class="badge">Pieza: <span id="lvl-num">1</span>/2</div>
+            <div class="badge">Aciertos: <span id="score-num">0</span>/3</div>
+        </div>
+
+        <div class="view-switcher">
+            <button class="tab-btn active-player" id="btn-view-player" onclick="cambiarVista('player')">
+                🏺 Mi Jarra 3D
+            </button>
+            <button class="tab-btn" id="btn-view-model" onclick="cambiarVista('model')">
+                🔍 Ver Modelo 3D (De Cerca)
+            </button>
+        </div>
+        <div class="helper-hint" id="view-hint">Estás viendo TU jarra. Desliza el dedo para girarla.</div>
+    </div>
+
+    <!-- Controles inferiores -->
+    <div class="bottom-bar">
+        <div class="consigna" id="consigna-txt">Mira el Modelo 3D de cerca y elige sus 3 diseños correctos:</div>
+        <div id="feedback"></div>
+        <div class="options-grid" id="options-grid"></div>
+        <button id="next-btn" onclick="siguienteNivel()">Siguiente Jarra ➡️</button>
+    </div>
+
+    <!-- Modal Final al completar todos los niveles -->
+    <div id="victory-modal">
+        <div class="victory-card">
+            <div class="diaguita-border"></div>
+            <div class="victory-icon">🏺🏆</div>
+            <div class="victory-title">¡Maestro Alfarero!</div>
+            <p class="victory-message">
+                ¡Bien, lograste completar el juego de la jarra cerámica diaguita!
+            </p>
+            <div class="diaguita-border"></div>
+            <button class="restart-btn" onclick="reiniciarJuego()">🔄 Jugar de nuevo</button>
+        </div>
+    </div>
+
+    <script>
+        // --- DATOS DE LOS NIVELES ---
+        const niveles = [
+            {
+                requeridos: ["bandas", "grecas", "serpiente"],
+                opciones: [
+                    { id: "bandas", texto: "⬛ Franjas negro y crema", correcta: true },
+                    { id: "grecas", texto: "📐 Grecas en el cuello", correcta: true },
+                    { id: "serpiente", texto: "🐍 Serpientes en la panza", correcta: true },
+                    { id: "falso1", texto: "😀 Caras felices", correcta: false },
+                    { id: "falso2", texto: "⚡ Rayos eléctricos", correcta: false },
+                    { id: "falso3", texto: "⭐ Estrellas modernas", correcta: false }
+                ]
+            },
+            {
+                requeridos: ["bandas", "triangulos", "suri"],
+                opciones: [
+                    { id: "bandas", texto: "⬛ Divisiones geométricas", correcta: true },
+                    { id: "triangulos", texto: "🔺 Triángulos en el cuello", correcta: true },
+                    { id: "suri", texto: "🦃 Aves Suri en la panza", correcta: true },
+                    { id: "falso1", texto: "❤️ Corazones pintados", correcta: false },
+                    { id: "falso2", texto: "🏁 Cuadros de carreras", correcta: false },
+                    { id: "falso3", texto: "🌙 Lunas y nubes", correcta: false }
+                ]
+            }
+        ];
+
+        let nivelActual = 0;
+        let aciertos = 0;
+        let capasJugador = [];
+        let vistaActual = 'player'; // 'player' o 'model'
+
+        // --- ESCENA ÚNICA THREE.JS ---
+        const container = document.getElementById('canvas-3d');
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x000000);
+
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+        camera.position.set(0, 1.0, 5.8);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        container.appendChild(renderer.domElement);
+
+        // Iluminación clara para ver todo perfectamente
+        scene.add(new THREE.AmbientLight(0xffffff, 0.85));
+        const light1 = new THREE.DirectionalLight(0xfffaed, 0.9);
+        light1.position.set(4, 6, 6);
+        scene.add(light1);
+        const light2 = new THREE.DirectionalLight(0xffeedd, 0.4);
+        light2.position.set(-4, -2, -5);
+        scene.add(light2);
+
+        // --- CONSTRUIR UNA JARRA 3D ---
+        function crearJarra3D() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 1024;
+            canvas.height = 512;
+            const ctx = canvas.getContext('2d');
+            const texture = new THREE.CanvasTexture(canvas);
+
+            const group = new THREE.Group();
+
+            // Forma de jarra diaguita
+            const points = [
+                new THREE.Vector2(0.0, -1.55),
+                new THREE.Vector2(0.66, -1.55),
+                new THREE.Vector2(1.18, -0.82),
+                new THREE.Vector2(1.34, -0.12),
+                new THREE.Vector2(1.10, 0.50),
+                new THREE.Vector2(0.62, 0.95),
+                new THREE.Vector2(0.80, 1.46),
+                new THREE.Vector2(0.73, 1.46),
+                new THREE.Vector2(0.56, 0.95),
+                new THREE.Vector2(0.0, 0.95)
+            ];
+            const geo = new THREE.LatheGeometry(points, 48);
+            const mat = new THREE.MeshStandardMaterial({
+                map: texture,
+                roughness: 0.55,
+                metalness: 0.05
+            });
+            group.add(new THREE.Mesh(geo, mat));
+
+            // Asa marrón
+            const curve = new THREE.CatmullRomCurve3([
+                new THREE.Vector3(0.68, 1.26, 0),
+                new THREE.Vector3(1.26, 1.16, 0),
+                new THREE.Vector3(1.44, 0.65, 0),
+                new THREE.Vector3(1.05, 0.35, 0)
+            ]);
+            const handleGeo = new THREE.TubeGeometry(curve, 24, 0.11, 12, false);
+            const handleMat = new THREE.MeshStandardMaterial({ color: 0x8c4829, roughness: 0.6 });
+            group.add(new THREE.Mesh(handleGeo, handleMat));
+
+            return { group, canvas, ctx, texture };
+        }
+
+        const jarraJugador = crearJarra3D();
+        const jarraModelo = crearJarra3D();
+
+        jarraJugador.group.position.set(0, 0.25, 0);
+        jarraModelo.group.position.set(0, 0.25, 0);
+        jarraModelo.group.visible = false; // Empieza oculta hasta que toques "Ver Modelo"
+
+        scene.add(jarraJugador.group);
+        scene.add(jarraModelo.group);
+
+        // --- DIBUJAR DISEÑOS NITIDOS EN LA TEXTURA ---
+        function pintarJarra(jarraObj, capas) {
+            const ctx = jarraObj.ctx;
+            const w = jarraObj.canvas.width;
+            const h = jarraObj.canvas.height;
+
+            // Color marrón arcilla cálido
+            ctx.fillStyle = '#8c4829';
+            ctx.fillRect(0, 0, w, h);
+
+            // Textura sutil de barro
+            for (let i = 0; i < 2000; i++) {
+                ctx.fillStyle = Math.random() > 0.5 ? 'rgba(20,5,0,0.08)' : 'rgba(255,220,180,0.07)';
+                ctx.fillRect(Math.random() * w, Math.random() * h, 3, 3);
+            }
+
+            // 1. Bandas horizontales y divisiones verticales
+            if (capas.includes("bandas")) {
+                [115, 260, 385].forEach(y => {
+                    ctx.fillStyle = '#111111';
+                    ctx.fillRect(0, y, w, 18);
+                    ctx.fillStyle = '#fffbeb';
+                    ctx.fillRect(0, y + 3, w, 4);
+                    ctx.fillRect(0, y + 11, w, 4);
+                });
+
+                for (let x = 0; x < w; x += 256) {
+                    ctx.fillStyle = '#111111';
+                    ctx.fillRect(x, 133, 18, 127);
+                    ctx.fillStyle = '#fffbeb';
+                    ctx.fillRect(x + 6, 133, 6, 127);
+                }
+            }
+
+            // 2A. Grecas escalonadas en el cuello
+            if (capas.includes("grecas")) {
+                for (let x = 16; x < w; x += 128) {
+                    ctx.strokeStyle = '#fffbeb';
+                    ctx.lineWidth = 14;
+                    ctx.beginPath();
+                    ctx.moveTo(x, 360);
+                    ctx.lineTo(x + 32, 360);
+                    ctx.lineTo(x + 32, 325);
+                    ctx.lineTo(x + 64, 325);
+                    ctx.lineTo(x + 64, 292);
+                    ctx.lineTo(x + 96, 292);
+                    ctx.stroke();
+
+                    ctx.strokeStyle = '#111111';
+                    ctx.lineWidth = 7;
+                    ctx.stroke();
+                }
+            }
+
+            // 2B. Triángulos aserrados en el cuello
+            if (capas.includes("triangulos")) {
+                for (let x = 0; x < w; x += 85.3) {
+                    ctx.fillStyle = '#111111';
+                    ctx.beginPath();
+                    ctx.moveTo(x + 4, 375);
+                    ctx.lineTo(x + 42.6, 290);
+                    ctx.lineTo(x + 81, 375);
+                    ctx.closePath();
+                    ctx.fill();
+
+                    ctx.strokeStyle = '#fffbeb';
+                    ctx.lineWidth = 5;
+                    ctx.stroke();
+
+                    ctx.fillStyle = '#fffbeb';
+                    ctx.beginPath();
+                    ctx.arc(x + 42.6, 348, 6, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+
+            // 3A. Serpientes en la panza
+            if (capas.includes("serpiente")) {
+                for (let x = 35; x < w; x += 256) {
+                    ctx.strokeStyle = '#fffbeb';
+                    ctx.lineWidth = 20;
+                    ctx.lineCap = 'round';
+                    ctx.beginPath();
+                    ctx.moveTo(x + 15, 220);
+                    ctx.bezierCurveTo(x + 55, 145, x + 115, 245, x + 165, 175);
+                    ctx.stroke();
+
+                    ctx.strokeStyle = '#111111';
+                    ctx.lineWidth = 10;
+                    ctx.stroke();
+
+                    ctx.fillStyle = '#111111';
+                    ctx.beginPath();
+                    ctx.arc(x + 172, 172, 16, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.strokeStyle = '#fffbeb';
+                    ctx.lineWidth = 4;
+                    ctx.stroke();
+
+                    ctx.fillStyle = '#fffbeb';
+                    ctx.beginPath();
+                    ctx.arc(x + 175, 169, 5, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+
+            // 3B. Aves Suri en la panza
+            if (capas.includes("suri")) {
+                for (let x = 50; x < w; x += 256) {
+                    ctx.fillStyle = '#111111';
+                    ctx.strokeStyle = '#fffbeb';
+                    ctx.lineWidth = 5;
+                    ctx.beginPath();
+                    ctx.moveTo(x + 20, 215);
+                    ctx.lineTo(x + 95, 175);
+                    ctx.lineTo(x + 115, 225);
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.stroke();
+
+                    ctx.strokeStyle = '#fffbeb';
+                    ctx.lineWidth = 8;
+                    ctx.beginPath();
+                    ctx.moveTo(x + 95, 180);
+                    ctx.lineTo(x + 135, 148);
+                    ctx.lineTo(x + 160, 155);
+                    ctx.stroke();
+
+                    ctx.lineWidth = 6;
+                    ctx.beginPath();
+                    ctx.moveTo(x + 60, 218);
+                    ctx.lineTo(x + 60, 250);
+                    ctx.moveTo(x + 82, 222);
+                    ctx.lineTo(x + 82, 250);
+                    ctx.stroke();
+                }
+            }
+
+            jarraObj.texture.needsUpdate = true;
+        }
+
+        // --- CAMBIAR ENTRE MI JARRA Y EL MODELO 3D DE CERCA ---
+        let targetCamZ = 5.8;
+
+        function cambiarVista(vista) {
+            vistaActual = vista;
+            const btnPlayer = document.getElementById('btn-view-player');
+            const btnModel = document.getElementById('btn-view-model');
+            const hint = document.getElementById('view-hint');
+
+            if (vista === 'model') {
+                jarraJugador.group.visible = false;
+                jarraModelo.group.visible = true;
+                targetCamZ = 4.3; // Zoom más cerca para ver bien todos los diseños
+
+                btnModel.classList.add('active-model');
+                btnPlayer.classList.remove('active-player');
+                hint.innerText = "🔍 Estás viendo el MODELO DE CERCA. Gíralo con el dedo.";
+                hint.style.color = "#6ee7b7";
+            } else {
+                jarraModelo.group.visible = false;
+                jarraJugador.group.visible = true;
+                targetCamZ = 5.8;
+
+                btnPlayer.classList.add('active-player');
+                btnModel.classList.remove('active-model');
+                hint.innerText = "🏺 Estás viendo TU JARRA. Toca los botones abajo para pintarla.";
+                hint.style.color = "#fde68a";
+            }
+        }
+
+        // --- LÓGICA DEL JUEGO ---
+        function cargarNivel() {
+            const nivel = niveles[nivelActual];
+            capasJugador = [];
+            aciertos = 0;
+
+            document.getElementById('lvl-num').innerText = nivelActual + 1;
+            document.getElementById('score-num').innerText = "0";
+            document.getElementById('feedback').innerText = "";
+            document.getElementById('next-btn').style.display = "none";
+
+            pintarJarra(jarraJugador, []);
+            pintarJarra(jarraModelo, nivel.requeridos);
+            cambiarVista('player');
+
+            const grid = document.getElementById('options-grid');
+            grid.innerHTML = "";
+
+            const mezcladas = [...nivel.opciones].sort(() => Math.random() - 0.5);
+            mezcladas.forEach(op => {
+                const btn = document.createElement('button');
+                btn.className = 'design-btn';
+                btn.innerText = op.texto;
+                btn.onclick = () => elegirDiseño(op, btn);
+                grid.appendChild(btn);
+            });
+        }
+
+        function elegirDiseño(opcion, boton) {
+            // Si estaba viendo el modelo, volver automáticamente a su jarra para ver cómo se pinta
+            if (vistaActual === 'model') {
+                cambiarVista('player');
+            }
+
+            const feedback = document.getElementById('feedback');
+
+            if (opcion.correcta) {
+                boton.classList.add('used');
+                capasJugador.push(opcion.id);
+                pintarJarra(jarraJugador, capasJugador);
+
+                aciertos++;
+                document.getElementById('score-num').innerText = aciertos;
+                feedback.style.color = "#4ade80";
+                feedback.innerText = "¡Muy bien! Diseño pintado en tu jarra. 🏺";
+
+                if (aciertos === 3) {
+                    feedback.innerText = "🏆 ¡Perfecto! Replicaste la jarra diaguita.";
+                    document.querySelectorAll('.design-btn').forEach(b => b.style.pointerEvents = 'none');
+                    if (nivelActual < niveles.length - 1) {
+                        document.getElementById('next-btn').style.display = "block";
+                    } else {
+                        // Mostrar pantalla final tras una breve pausa para apreciar la jarra terminada
+                        setTimeout(() => {
+                            document.getElementById('victory-modal').style.display = 'flex';
+                        }, 700);
+                    }
+                }
+            } else {
+                boton.classList.add('wrong');
+                feedback.style.color = "#f87171";
+                feedback.innerText = "❌ Ese dibujo no está en el Modelo 3D.";
+                setTimeout(() => boton.classList.remove('wrong'), 600);
+            }
+        }
+
+        function siguienteNivel() {
+            nivelActual++;
+            if (nivelActual < niveles.length) cargarNivel();
+        }
+
+        function reiniciarJuego() {
+            nivelActual = 0;
+            document.getElementById('victory-modal').style.display = 'none';
+            cargarNivel();
+        }
+
+        // --- ROTACIÓN TÁCTIL EN PANTALLA COMPLETA ---
+        let dragging = false, prevX = 0, prevY = 0;
+
+        function getActiveJarra() {
+            return vistaActual === 'model' ? jarraModelo.group : jarraJugador.group;
+        }
+
+        container.addEventListener('mousedown', e => { dragging = true; prevX = e.clientX; prevY = e.clientY; });
+        window.addEventListener('mousemove', e => {
+            if (!dragging) return;
+            const jarra = getActiveJarra();
+            jarra.rotation.y += (e.clientX - prevX) * 0.015;
+            jarra.rotation.x = Math.max(-0.45, Math.min(0.45, jarra.rotation.x + (e.clientY - prevY) * 0.01));
+            prevX = e.clientX; prevY = e.clientY;
+        });
+        window.addEventListener('mouseup', () => dragging = false);
+
+        container.addEventListener('touchstart', e => {
+            if (e.touches.length === 1) { dragging = true; prevX = e.touches[0].clientX; prevY = e.touches[0].clientY; }
+        }, { passive: true });
+        window.addEventListener('touchmove', e => {
+            if (!dragging || e.touches.length !== 1) return;
+            const jarra = getActiveJarra();
+            jarra.rotation.y += (e.touches[0].clientX - prevX) * 0.015;
+            jarra.rotation.x = Math.max(-0.45, Math.min(0.45, jarra.rotation.x + (e.touches[0].clientY - prevY) * 0.01));
+            prevX = e.touches[0].clientX; prevY = e.touches[0].clientY;
+        }, { passive: true });
+        window.addEventListener('touchend', () => dragging = false);
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // Bucle principal
+        function animate() {
+            requestAnimationFrame(animate);
+            // Transición suave de zoom de cámara
+            camera.position.z += (targetCamZ - camera.position.z) * 0.1;
+
+            if (!dragging) {
+                getActiveJarra().rotation.y += 0.005;
+            }
+            renderer.render(scene, camera);
+        }
+
+        cargarNivel();
+        animate();
+    </script>
+</body>
+          </html>
