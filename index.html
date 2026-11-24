@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Alfarero Diaguita 3D - Zoom Modelo</title>
     <style>
         * {
@@ -10,33 +10,34 @@
             margin: 0;
             padding: 0;
             user-select: none;
+            -webkit-tap-highlight-color: transparent;
         }
-        body {
+        html, body {
             background-color: #000000;
             color: #ffffff;
             font-family: system-ui, -apple-system, sans-serif;
             overflow: hidden;
-            width: 100vw;
-            height: 100vh;
+            width: 100%;
+            height: 100dvh; /* Soluciona el corte por la barra de Chrome */
             display: flex;
             flex-direction: column;
         }
         #canvas-3d {
-            position: absolute;
-            top: 0;
-            left: 0;
+            position: fixed;
+            inset: 0;
             width: 100%;
             height: 100%;
             z-index: 1;
+            touch-action: none; /* Evita que Chrome haga scroll o pull-to-refresh al girar la jarra */
         }
-        /* Barra superior con selector de cámara */
+        /* Barra superior */
         .top-bar {
             position: relative;
             z-index: 10;
-            padding: 12px;
+            padding: 10px 12px;
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: 6px;
             pointer-events: none;
         }
         .header-row {
@@ -45,18 +46,17 @@
             align-items: center;
         }
         .badge {
-            background: rgba(30, 20, 15, 0.9);
+            background: rgba(30, 20, 15, 0.92);
             border: 1px solid #92400e;
-            padding: 6px 12px;
+            padding: 5px 12px;
             border-radius: 20px;
-            font-size: 0.85rem;
+            font-size: 0.82rem;
             font-weight: bold;
             color: #fde68a;
         }
         .badge span {
             color: #f59e0b;
         }
-        /* Botones para cambiar entre tu jarra y el modelo 3D de cerca */
         .view-switcher {
             display: flex;
             gap: 8px;
@@ -65,13 +65,13 @@
         }
         .tab-btn {
             flex: 1;
-            padding: 11px 8px;
+            padding: 9px 8px;
             border-radius: 10px;
             border: 2px solid #57534e;
             background: rgba(24, 24, 27, 0.92);
             color: #d6d3d1;
             font-weight: bold;
-            font-size: 0.88rem;
+            font-size: 0.85rem;
             cursor: pointer;
             transition: all 0.2s;
             text-align: center;
@@ -90,7 +90,7 @@
         }
         .helper-hint {
             text-align: center;
-            font-size: 0.78rem;
+            font-size: 0.76rem;
             color: #a8a29e;
             text-shadow: 0 1px 3px #000;
         }
@@ -99,36 +99,36 @@
             position: relative;
             z-index: 10;
             margin-top: auto;
-            background: linear-gradient(to top, #000000 82%, rgba(0,0,0,0));
-            padding: 14px;
+            background: linear-gradient(to top, rgba(0,0,0,0.95) 75%, rgba(0,0,0,0));
+            padding: 10px 12px 14px;
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: 6px;
         }
         .consigna {
             text-align: center;
-            font-size: 0.92rem;
+            font-size: 0.88rem;
             color: #fde68a;
             font-weight: bold;
         }
         #feedback {
             text-align: center;
-            font-size: 0.88rem;
-            min-height: 20px;
+            font-size: 0.84rem;
+            min-height: 18px;
             font-weight: bold;
         }
         .options-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 8px;
+            gap: 7px;
         }
         .design-btn {
             background: #231914;
             border: 2px solid #92400e;
             color: #fff;
-            padding: 10px 6px;
+            padding: 9px 6px;
             border-radius: 8px;
-            font-size: 0.82rem;
+            font-size: 0.8rem;
             cursor: pointer;
             text-align: center;
         }
@@ -151,10 +151,41 @@
             color: #000;
             font-weight: bold;
             border: none;
-            padding: 12px;
+            padding: 11px;
             border-radius: 8px;
-            font-size: 0.95rem;
+            font-size: 0.92rem;
             cursor: pointer;
+        }
+
+        /* Adaptación automática si jugás en horizontal (landscape) */
+        @media (orientation: landscape) and (max-height: 500px) {
+            .top-bar {
+                flex-direction: row;
+                align-items: center;
+                padding: 6px 12px;
+            }
+            .header-row {
+                gap: 6px;
+            }
+            .view-switcher {
+                width: auto;
+                flex: 1;
+            }
+            .helper-hint {
+                display: none;
+            }
+            .bottom-bar {
+                padding: 6px 12px 8px;
+                gap: 4px;
+            }
+            .options-grid {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 6px;
+            }
+            .design-btn {
+                padding: 7px 4px;
+                font-size: 0.76rem;
+            }
         }
 
         /* Pantalla Final de Victoria */
@@ -174,14 +205,14 @@
             background: linear-gradient(145deg, #291810, #170d08);
             border: 3px solid #f59e0b;
             border-radius: 18px;
-            padding: 28px 22px;
+            padding: 24px 20px;
             max-width: 400px;
             width: 100%;
             text-align: center;
             box-shadow: 0 0 35px rgba(245, 158, 11, 0.45);
             display: flex;
             flex-direction: column;
-            gap: 14px;
+            gap: 12px;
         }
         .diaguita-border {
             height: 10px;
@@ -198,36 +229,28 @@
             border-radius: 4px;
         }
         .victory-icon {
-            font-size: 3.4rem;
-            margin-top: 4px;
+            font-size: 3rem;
         }
         .victory-title {
-            font-size: 1.45rem;
+            font-size: 1.4rem;
             font-weight: 800;
             color: #fbbf24;
-            letter-spacing: 0.5px;
         }
         .victory-message {
-            font-size: 1.05rem;
-            line-height: 1.5;
+            font-size: 1rem;
+            line-height: 1.4;
             color: #fef3c7;
-            font-weight: 500;
         }
         .restart-btn {
-            margin-top: 8px;
+            margin-top: 6px;
             background: #f59e0b;
             color: #111111;
             font-weight: 800;
             border: none;
-            padding: 14px;
+            padding: 12px;
             border-radius: 10px;
-            font-size: 1rem;
+            font-size: 0.95rem;
             cursor: pointer;
-            transition: transform 0.15s, background 0.2s;
-        }
-        .restart-btn:active {
-            transform: scale(0.96);
-            background: #d97706;
         }
         @keyframes fadeIn {
             from { opacity: 0; transform: scale(0.95); }
@@ -252,7 +275,7 @@
                 🏺 Mi Jarra 3D
             </button>
             <button class="tab-btn" id="btn-view-model" onclick="cambiarVista('model')">
-                🔍 Ver Modelo 3D (De Cerca)
+                🔍 Ver Modelo 3D
             </button>
         </div>
         <div class="helper-hint" id="view-hint">Estás viendo TU jarra. Desliza el dedo para girarla.</div>
@@ -266,7 +289,7 @@
         <button id="next-btn" onclick="siguienteNivel()">Siguiente Jarra ➡️</button>
     </div>
 
-    <!-- Modal Final al completar todos los niveles -->
+    <!-- Modal Final -->
     <div id="victory-modal">
         <div class="victory-card">
             <div class="diaguita-border"></div>
@@ -281,7 +304,6 @@
     </div>
 
     <script>
-        // --- DATOS DE LOS NIVELES ---
         const niveles = [
             {
                 requeridos: ["bandas", "grecas", "serpiente"],
@@ -310,22 +332,20 @@
         let nivelActual = 0;
         let aciertos = 0;
         let capasJugador = [];
-        let vistaActual = 'player'; // 'player' o 'model'
+        let vistaActual = 'player';
 
-        // --- ESCENA ÚNICA THREE.JS ---
+        // --- ESCENA THREE.JS ---
         const container = document.getElementById('canvas-3d');
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x000000);
 
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
-        camera.position.set(0, 1.0, 5.8);
 
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
         renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Evita lag en celus
         container.appendChild(renderer.domElement);
 
-        // Iluminación clara para ver todo perfectamente
         scene.add(new THREE.AmbientLight(0xffffff, 0.85));
         const light1 = new THREE.DirectionalLight(0xfffaed, 0.9);
         light1.position.set(4, 6, 6);
@@ -334,7 +354,6 @@
         light2.position.set(-4, -2, -5);
         scene.add(light2);
 
-        // --- CONSTRUIR UNA JARRA 3D ---
         function crearJarra3D() {
             const canvas = document.createElement('canvas');
             canvas.width = 1024;
@@ -344,7 +363,6 @@
 
             const group = new THREE.Group();
 
-            // Forma de jarra diaguita
             const points = [
                 new THREE.Vector2(0.0, -1.55),
                 new THREE.Vector2(0.66, -1.55),
@@ -365,7 +383,6 @@
             });
             group.add(new THREE.Mesh(geo, mat));
 
-            // Asa marrón
             const curve = new THREE.CatmullRomCurve3([
                 new THREE.Vector3(0.68, 1.26, 0),
                 new THREE.Vector3(1.26, 1.16, 0),
@@ -382,30 +399,27 @@
         const jarraJugador = crearJarra3D();
         const jarraModelo = crearJarra3D();
 
-        jarraJugador.group.position.set(0, 0.25, 0);
-        jarraModelo.group.position.set(0, 0.25, 0);
-        jarraModelo.group.visible = false; // Empieza oculta hasta que toques "Ver Modelo"
+        // Posición centrada en el espacio libre entre los menús
+        jarraJugador.group.position.set(0, 0.35, 0);
+        jarraModelo.group.position.set(0, 0.35, 0);
+        jarraModelo.group.visible = false;
 
         scene.add(jarraJugador.group);
         scene.add(jarraModelo.group);
 
-        // --- DIBUJAR DISEÑOS NITIDOS EN LA TEXTURA ---
         function pintarJarra(jarraObj, capas) {
             const ctx = jarraObj.ctx;
             const w = jarraObj.canvas.width;
             const h = jarraObj.canvas.height;
 
-            // Color marrón arcilla cálido
             ctx.fillStyle = '#8c4829';
             ctx.fillRect(0, 0, w, h);
 
-            // Textura sutil de barro
             for (let i = 0; i < 2000; i++) {
                 ctx.fillStyle = Math.random() > 0.5 ? 'rgba(20,5,0,0.08)' : 'rgba(255,220,180,0.07)';
                 ctx.fillRect(Math.random() * w, Math.random() * h, 3, 3);
             }
 
-            // 1. Bandas horizontales y divisiones verticales
             if (capas.includes("bandas")) {
                 [115, 260, 385].forEach(y => {
                     ctx.fillStyle = '#111111';
@@ -423,7 +437,6 @@
                 }
             }
 
-            // 2A. Grecas escalonadas en el cuello
             if (capas.includes("grecas")) {
                 for (let x = 16; x < w; x += 128) {
                     ctx.strokeStyle = '#fffbeb';
@@ -443,7 +456,6 @@
                 }
             }
 
-            // 2B. Triángulos aserrados en el cuello
             if (capas.includes("triangulos")) {
                 for (let x = 0; x < w; x += 85.3) {
                     ctx.fillStyle = '#111111';
@@ -465,7 +477,6 @@
                 }
             }
 
-            // 3A. Serpientes en la panza
             if (capas.includes("serpiente")) {
                 for (let x = 35; x < w; x += 256) {
                     ctx.strokeStyle = '#fffbeb';
@@ -495,7 +506,6 @@
                 }
             }
 
-            // 3B. Aves Suri en la panza
             if (capas.includes("suri")) {
                 for (let x = 50; x < w; x += 256) {
                     ctx.fillStyle = '#111111';
@@ -530,8 +540,17 @@
             jarraObj.texture.needsUpdate = true;
         }
 
-        // --- CAMBIAR ENTRE MI JARRA Y EL MODELO 3D DE CERCA ---
-        let targetCamZ = 5.8;
+        // --- CÁMARA RESPONSIVE ---
+        let targetCamZ = 6.5;
+
+        function calcularDistanciaCamara() {
+            const isLandscape = window.innerWidth > window.innerHeight;
+            if (vistaActual === 'model') {
+                return isLandscape ? 5.2 : 4.6;
+            } else {
+                return isLandscape ? 6.8 : 6.4;
+            }
+        }
 
         function cambiarVista(vista) {
             vistaActual = vista;
@@ -539,10 +558,11 @@
             const btnModel = document.getElementById('btn-view-model');
             const hint = document.getElementById('view-hint');
 
+            targetCamZ = calcularDistanciaCamara();
+
             if (vista === 'model') {
                 jarraJugador.group.visible = false;
                 jarraModelo.group.visible = true;
-                targetCamZ = 4.3; // Zoom más cerca para ver bien todos los diseños
 
                 btnModel.classList.add('active-model');
                 btnPlayer.classList.remove('active-player');
@@ -551,7 +571,6 @@
             } else {
                 jarraModelo.group.visible = false;
                 jarraJugador.group.visible = true;
-                targetCamZ = 5.8;
 
                 btnPlayer.classList.add('active-player');
                 btnModel.classList.remove('active-model');
@@ -560,7 +579,6 @@
             }
         }
 
-        // --- LÓGICA DEL JUEGO ---
         function cargarNivel() {
             const nivel = niveles[nivelActual];
             capasJugador = [];
@@ -583,13 +601,12 @@
                 const btn = document.createElement('button');
                 btn.className = 'design-btn';
                 btn.innerText = op.texto;
-                btn.onclick = () => elegirDiseño(op, btn);
+                btn.onclick = () => elegirDiseno(op, btn);
                 grid.appendChild(btn);
             });
         }
 
-        function elegirDiseño(opcion, boton) {
-            // Si estaba viendo el modelo, volver automáticamente a su jarra para ver cómo se pinta
+        function elegirDiseno(opcion, boton) {
             if (vistaActual === 'model') {
                 cambiarVista('player');
             }
@@ -612,7 +629,6 @@
                     if (nivelActual < niveles.length - 1) {
                         document.getElementById('next-btn').style.display = "block";
                     } else {
-                        // Mostrar pantalla final tras una breve pausa para apreciar la jarra terminada
                         setTimeout(() => {
                             document.getElementById('victory-modal').style.display = 'flex';
                         }, 700);
@@ -637,7 +653,7 @@
             cargarNivel();
         }
 
-        // --- ROTACIÓN TÁCTIL EN PANTALLA COMPLETA ---
+        // --- ROTACIÓN TÁCTIL ---
         let dragging = false, prevX = 0, prevY = 0;
 
         function getActiveJarra() {
@@ -666,16 +682,19 @@
         }, { passive: true });
         window.addEventListener('touchend', () => dragging = false);
 
-        window.addEventListener('resize', () => {
+        function actualizarTamano() {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
-        });
+            targetCamZ = calcularDistanciaCamara();
+        }
 
-        // Bucle principal
+        window.addEventListener('resize', actualizarTamano);
+
+        camera.position.set(0, 0.85, calcularDistanciaCamara());
+
         function animate() {
             requestAnimationFrame(animate);
-            // Transición suave de zoom de cámara
             camera.position.z += (targetCamZ - camera.position.z) * 0.1;
 
             if (!dragging) {
@@ -688,4 +707,4 @@
         animate();
     </script>
 </body>
-          </html>
+</html>
